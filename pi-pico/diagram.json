@@ -1,16 +1,173 @@
 {
   "version": 1,
-  "author": "Uri Shaked",
+  "author": "Joel",
   "editor": "wokwi",
   "parts": [
     {
       "type": "wokwi-pi-pico",
       "id": "pico",
-      "top": -3.15,
-      "left": 3.6,
+      "top": 10,
+      "left": 420,
       "attrs": {}
+    },
+
+    {
+      "type": "wokwi-pushbutton",
+      "id": "key1",
+      "top": 260,
+      "left": 20,
+      "attrs": { "label": "1", "key": "1", "bounce": "0" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "key2",
+      "top": 260,
+      "left": 100,
+      "attrs": { "label": "2", "key": "2", "bounce": "0" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "key3",
+      "top": 260,
+      "left": 180,
+      "attrs": { "label": "3", "key": "3", "bounce": "0" }
+    },
+
+    {
+      "type": "wokwi-pushbutton",
+      "id": "key4",
+      "top": 340,
+      "left": 20,
+      "attrs": { "label": "4", "key": "4", "bounce": "0" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "key5",
+      "top": 340,
+      "left": 100,
+      "attrs": { "label": "5", "key": "5", "bounce": "0" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "key6",
+      "top": 340,
+      "left": 180,
+      "attrs": { "label": "6", "key": "6", "bounce": "0" }
+    },
+
+    {
+      "type": "wokwi-pushbutton",
+      "id": "key7",
+      "top": 420,
+      "left": 20,
+      "attrs": { "label": "7", "key": "7", "bounce": "0" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "key8",
+      "top": 420,
+      "left": 100,
+      "attrs": { "label": "8", "key": "8", "bounce": "0" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "key9",
+      "top": 420,
+      "left": 180,
+      "attrs": { "label": "9", "key": "9", "bounce": "0" }
+    },
+
+    {
+      "type": "wokwi-pushbutton",
+      "id": "key10",
+      "top": 500,
+      "left": 20,
+      "attrs": { "label": "10", "key": "Q", "bounce": "0" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "key11",
+      "top": 500,
+      "left": 100,
+      "attrs": { "label": "11", "key": "W", "bounce": "0" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "key12",
+      "top": 500,
+      "left": 180,
+      "attrs": { "label": "12", "key": "E", "bounce": "0" }
+    },
+
+    {
+      "type": "wokwi-led-strip",
+      "id": "pixels",
+      "top": 620,
+      "left": 20,
+      "attrs": {
+        "pixels": "12",
+        "pixelShape": "square"
+      }
+    },
+
+    {
+      "type": "wokwi-ky-040",
+      "id": "encoder",
+      "top": 70,
+      "left": 200,
+      "attrs": {}
+    },
+
+    {
+      "type": "wokwi-buzzer",
+      "id": "speaker",
+      "top": 110,
+      "left": 700,
+      "attrs": {
+        "volume": "0.3",
+        "mode": "smooth"
+      }
     }
   ],
-  "connections": [],
-  "dependencies": {}
+
+  "connections": [
+    [ "pico:GP1", "key1:1.l", "", [] ],
+    [ "pico:GP2", "key2:1.l", "", [] ],
+    [ "pico:GP3", "key3:1.l", "", [] ],
+    [ "pico:GP4", "key4:1.l", "", [] ],
+    [ "pico:GP5", "key5:1.l", "", [] ],
+    [ "pico:GP6", "key6:1.l", "", [] ],
+    [ "pico:GP7", "key7:1.l", "", [] ],
+    [ "pico:GP8", "key8:1.l", "", [] ],
+    [ "pico:GP9", "key9:1.l", "", [] ],
+    [ "pico:GP10", "key10:1.l", "", [] ],
+    [ "pico:GP11", "key11:1.l", "", [] ],
+    [ "pico:GP12", "key12:1.l", "", [] ],
+
+    [ "key1:2.l", "pico:GND.1", "black", [] ],
+    [ "key2:2.l", "pico:GND.1", "black", [] ],
+    [ "key3:2.l", "pico:GND.1", "black", [] ],
+    [ "key4:2.l", "pico:GND.1", "black", [] ],
+    [ "key5:2.l", "pico:GND.1", "black", [] ],
+    [ "key6:2.l", "pico:GND.1", "black", [] ],
+    [ "key7:2.l", "pico:GND.1", "black", [] ],
+    [ "key8:2.l", "pico:GND.1", "black", [] ],
+    [ "key9:2.l", "pico:GND.1", "black", [] ],
+    [ "key10:2.l", "pico:GND.1", "black", [] ],
+    [ "key11:2.l", "pico:GND.1", "black", [] ],
+    [ "key12:2.l", "pico:GND.1", "black", [] ],
+
+    [ "pico:GP19", "pixels:DIN", "green", [] ],
+    [ "pico:VBUS", "pixels:VDD", "red", [] ],
+    [ "pico:GND.2", "pixels:VSS", "black", [] ],
+
+    [ "pico:GP18", "encoder:CLK", "blue", [] ],
+    [ "pico:GP17", "encoder:DT", "green", [] ],
+    [ "pico:GP0", "encoder:SW", "orange", [] ],
+    [ "pico:3V3", "encoder:VCC", "red", [] ],
+    [ "pico:GND.3", "encoder:GND", "black", [] ],
+
+    [ "pico:GP16", "speaker:2", "purple", [] ],
+    [ "pico:GND.4", "speaker:1", "black", [] ]
+  ]
 }
