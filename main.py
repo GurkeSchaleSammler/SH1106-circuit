@@ -2,8 +2,6 @@ from machine import Pin
 import neopixel
 import time
 
-import audioio
-import board
 
 buttons = [Pin(i, Pin.IN, Pin.PULL_UP) for i in range(1, 13)]
 
@@ -13,11 +11,9 @@ pixels = neopixel.NeoPixel(
 )
 
 endProgramm = False
-
 endPattern = [0, 1, 2, 11]
 
 lastClicks = []
-
 previousStates = [1] * 12
 
 
@@ -25,15 +21,26 @@ def checkIfEndPattern(lastClicks, endPattern):
     return lastClicks[-len(endPattern):] == endPattern
 
 
+def soundplayer(index):
+    filename = "sound" + str(index) + ".wav"
+
+    print("Play:", filename)
+
+    # Hier kommt die MicroPython-Audioausgabe hin
+
+
 while not endProgramm:
     for i, button in enumerate(buttons):
         currentState = button.value()
 
+        # Button wurde gerade heruntergedrückt
         if previousStates[i] == 1 and currentState == 0:
             lastClicks.append(i)
 
             print("Button:", i + 1)
             print("Pattern:", lastClicks)
+
+            soundplayer(i)
 
             if checkIfEndPattern(lastClicks, endPattern):
                 endProgramm = True
@@ -48,14 +55,3 @@ while not endProgramm:
 
     pixels.write()
     time.sleep_ms(10)
-
-def soundplayer(index):
-    wave_file = open("sound" + str(index) + ".wav", "rb")
-    wave = audioio.WaveFile(wave_file)
-    with audioio.AudioOut(board.A0) as audio:
-        audio.play(wave)
-        while audio.playing:
-            pass
-
-
-
