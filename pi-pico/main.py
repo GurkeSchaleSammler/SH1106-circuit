@@ -1,5 +1,6 @@
 import time
 
+import config
 import hardware
 
 from buttonAndLightsController import ButtonAndLightsController
@@ -22,11 +23,29 @@ lastClicks = []
 
 currentMode = 0
 
+currentVolume = config.DEFAULT_VOLUME
+
 
 def checkIfEndPattern():
     return (
         lastClicks[-len(endPattern):]
         == endPattern
+    )
+
+
+def clamp(value, minimum, maximum):
+    if value < minimum:
+        return minimum
+
+    if value > maximum:
+        return maximum
+
+    return value
+
+
+def getVolumePercent():
+    return round(
+        currentVolume * 100
     )
 
 
@@ -42,8 +61,22 @@ print(
     else "disabled",
 )
 
+print(
+    "Volume:",
+    str(getVolumePercent()) + "%",
+)
+
+soundPlayer.setVolume(
+    currentVolume
+)
+
 displayController.showMode(
-    currentMode
+    currentMode,
+    status=(
+        "Volume: "
+        + str(getVolumePercent())
+        + "%"
+    ),
 )
 
 
@@ -51,34 +84,69 @@ while not endProgramm:
     # --------------------------------------------------------
     # Encoder
     # --------------------------------------------------------
-    newMode, modeChanged = (
-        encoderController.update(
-            currentMode
-        )
-    )
+    rotation = encoderController.getRotation()
 
-    if modeChanged:
-        currentMode = newMode
+    if rotation != 0:
 
-        print(
-            "Mode:",
-            currentMode,
-        )
+        # ----------------------------------------------------
+        # Encoder held + rotation
+        # -> change octave / mode
+        # ----------------------------------------------------
+        if encoderController.isPressed():
+            currentMode += rotation
 
-        displayController.showMode(
-            currentMode
-        )
+            currentMode = clamp(
+                currentMode,
+                -8,
+                8,
+            )
 
-    if encoderController.switchPressed():
-        currentMode = 0
+            print(
+                "Mode:",
+                currentMode,
+            )
 
-        print(
-            "Encoder pressed -> Original"
-        )
+            displayController.showMode(
+                currentMode
+            )
 
-        displayController.showMode(
-            currentMode
-        )
+        # ----------------------------------------------------
+        # Normal encoder rotation
+        # -> change volume
+        # ----------------------------------------------------
+        else:
+            currentVolume += (
+                rotation
+                * config.VOLUME_STEP
+            )
+
+            currentVolume = clamp(
+                currentVolume,
+                config.MIN_VOLUME,
+                config.MAX_VOLUME,
+            )
+
+            soundPlayer.setVolume(
+                currentVolume
+            )
+
+            volumePercent = (
+                getVolumePercent()
+            )
+
+            print(
+                "Volume:",
+                str(volumePercent) + "%",
+            )
+
+            displayController.showMode(
+                currentMode,
+                status=(
+                    "Volume: "
+                    + str(volumePercent)
+                    + "%"
+                ),
+            )
 
     # --------------------------------------------------------
     # Buttons + NeoPixels
@@ -142,7 +210,9 @@ while not endProgramm:
 
 
 soundPlayer.stop()
+
 buttonAndLightsController.clear()
+
 displayController.showStopped()
 
 print("END.")

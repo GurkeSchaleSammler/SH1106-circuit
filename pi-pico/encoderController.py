@@ -1,11 +1,7 @@
 from machine import Pin
-import time
 
 import hardware
 
-
-MIN_MODE = -8
-MAX_MODE = 8
 
 DIRECTION = 1
 
@@ -33,20 +29,17 @@ class EncoderController:
         self.lastState = self._readState()
         self.accumulator = 0
 
-        self.lastSwitchState = self.switch.value()
-        self.lastSwitchChange = time.ticks_ms()
-
     def _readState(self):
         return (
             (self.clk.value() << 1)
             | self.dt.value()
         )
 
-    def update(self, currentMode):
+    def getRotation(self):
         currentState = self._readState()
 
         if currentState == self.lastState:
-            return currentMode, False
+            return 0
 
         transition = (
             (self.lastState << 2)
@@ -64,41 +57,15 @@ class EncoderController:
 
         self.accumulator += transitionTable[transition]
 
-        # KY-040
         if self.accumulator >= 4:
             self.accumulator = 0
+            return DIRECTION
 
-            newMode = currentMode + DIRECTION
-
-        elif self.accumulator <= -4:
+        if self.accumulator <= -4:
             self.accumulator = 0
+            return -DIRECTION
 
-            newMode = currentMode - DIRECTION
+        return 0
 
-        else:
-            return currentMode, False
-
-        if newMode > MAX_MODE:
-            newMode = MAX_MODE
-
-        elif newMode < MIN_MODE:
-            newMode = MIN_MODE
-
-        return newMode, newMode != currentMode
-
-    def switchPressed(self):
-        currentState = self.switch.value()
-        now = time.ticks_ms()
-
-        if currentState != self.lastSwitchState:
-            if time.ticks_diff(
-                now,
-                self.lastSwitchChange,
-            ) >= 30:
-                self.lastSwitchState = currentState
-                self.lastSwitchChange = now
-
-                if currentState == 0:
-                    return True
-
-        return False
+    def isPressed(self):
+        return self.switch.value() == 0

@@ -17,3 +17,8 @@ AUDIO_OUTPUT_RATE = 8000
 # A complete WAV data block is loaded into RAM for playback.
 # The RP2040 has limited RAM, so keep sound files small.
 MAX_AUDIO_BYTES = 180_000
+
+DEFAULT_VOLUME = 0.30
+MIN_VOLUME = 0.00
+MAX_VOLUME = 1.00
+VOLUME_STEP = 0.05

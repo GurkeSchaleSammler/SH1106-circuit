@@ -17,6 +17,8 @@ class SoundPlayer:
         self.speakerEnable = None
         self.pwm = None
 
+        self.volume = config.DEFAULT_VOLUME
+
         if not self.enabled:
             print("Audio disabled - Wokwi simulation")
             return
@@ -40,6 +42,7 @@ class SoundPlayer:
             import _thread
 
             self.threadModule = _thread
+
             _thread.start_new_thread(
                 self._worker,
                 (),
@@ -51,12 +54,30 @@ class SoundPlayer:
 
         except ImportError:
             self.enabled = False
+
             self.pwm.deinit()
             self.pwm = None
 
             print(
                 "Audio disabled: _thread is missing"
             )
+
+    def setVolume(self, volume):
+        if volume < config.MIN_VOLUME:
+            volume = config.MIN_VOLUME
+
+        elif volume > config.MAX_VOLUME:
+            volume = config.MAX_VOLUME
+
+        self.volume = volume
+
+        print(
+            "Volume:",
+            str(round(self.volume * 100)) + "%"
+        )
+
+    def getVolume(self):
+        return self.volume
 
     def resolveSound(
         self,
@@ -110,6 +131,8 @@ class SoundPlayer:
                 filename,
                 "octave:",
                 octaveShift,
+                "volume:",
+                str(round(self.volume * 100)) + "%",
             )
 
             return soundNumber, None
@@ -140,6 +163,8 @@ class SoundPlayer:
             filename,
             "octave:",
             octaveShift,
+            "volume:",
+            str(round(self.volume * 100)) + "%",
         )
 
         return soundNumber, None
@@ -253,6 +278,7 @@ class SoundPlayer:
                         )
 
                     data = wav.read(chunk_size)
+
                     break
 
                 else:
@@ -294,6 +320,24 @@ class SoundPlayer:
         finally:
             wav.close()
 
+    def _applyVolume(self, duty):
+        center = 32_768
+
+        scaledDuty = int(
+            center
+            + (
+                duty - center
+            ) * self.volume
+        )
+
+        if scaledDuty < 0:
+            scaledDuty = 0
+
+        elif scaledDuty > 65_535:
+            scaledDuty = 65_535
+
+        return scaledDuty
+
     def _playWav(
         self,
         filename,
@@ -313,32 +357,51 @@ class SoundPlayer:
             outputRate = 1000
 
         bytesPerSample = bitsPerSample // 8
-        frameSize = bytesPerSample * channels
+
+        frameSize = (
+            bytesPerSample
+            * channels
+        )
 
         totalFrames = (
-            len(data) // frameSize
+            len(data)
+            // frameSize
         )
 
         # Q16.16 source position.
-        # This also allows negative octave shifts
-        # by repeating samples during playback.
+        #
+        # The source position can advance faster or slower
+        # than the output rate, which changes the pitch.
+        #
+        # Positive octaveShift:
+        #     samples are skipped -> higher pitch
+        #
+        # Negative octaveShift:
+        #     samples are repeated -> lower pitch
         baseStep = (
             sourceRate << 16
         ) // outputRate
 
         if octaveShift >= 0:
-            step = baseStep << octaveShift
+            step = (
+                baseStep
+                << octaveShift
+            )
+
         else:
-            step = baseStep >> abs(
-                octaveShift
+            step = (
+                baseStep
+                >> abs(octaveShift)
             )
 
             if step < 1:
                 step = 1
 
         position = 0
+
         periodUs = (
-            1_000_000 // outputRate
+            1_000_000
+            // outputRate
         )
 
         nextTick = time.ticks_us()
@@ -347,33 +410,63 @@ class SoundPlayer:
             if generation != self.generation:
                 break
 
-            frameIndex = position >> 16
+            frameIndex = (
+                position >> 16
+            )
 
             if frameIndex >= totalFrames:
                 break
 
-            offset = frameIndex * frameSize
+            offset = (
+                frameIndex
+                * frameSize
+            )
 
             if bitsPerSample == 8:
                 sample = data[offset]
 
-                # Unsigned 8-bit -> 0..65535
-                duty = sample * 257
+                # Unsigned 8-bit:
+                # 0..255 -> 0..65535
+                duty = (
+                    sample * 257
+                )
 
             else:
                 low = data[offset]
                 high = data[offset + 1]
 
-                sample = low | (high << 8)
+                sample = (
+                    low
+                    | (high << 8)
+                )
 
                 if sample & 0x8000:
-                    sample -= 65536
+                    sample -= 65_536
 
-                duty = sample + 32768
+                # Signed 16-bit:
+                # -32768..32767
+                # ->
+                # 0..65535
+                duty = (
+                    sample
+                    + 32_768
+                )
 
-            self.pwm.duty_u16(duty)
+            # Apply volume around the neutral PWM center.
+            #
+            # 0.0 -> completely flat signal
+            # 0.5 -> half amplitude
+            # 1.0 -> full amplitude
+            duty = self._applyVolume(
+                duty
+            )
+
+            self.pwm.duty_u16(
+                duty
+            )
 
             position += step
+
             nextTick = time.ticks_add(
                 nextTick,
                 periodUs,
@@ -388,4 +481,7 @@ class SoundPlayer:
             ):
                 pass
 
-        self.pwm.duty_u16(32_768)
+        # Return PWM to the neutral center after playback.
+        self.pwm.duty_u16(
+            32_768
+        )
